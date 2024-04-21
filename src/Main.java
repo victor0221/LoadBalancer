@@ -8,6 +8,7 @@ import java.net.Socket;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
+import jobsender.Job;
 
 public class Main {
     
@@ -27,7 +28,7 @@ public static void main(String[] args) throws ClassNotFoundException{
             ObjectInputStream inputStream = new ObjectInputStream(clientSocket.getInputStream());
             try {
                 while (true) {
-                    int job = (int) inputStream.readObject();
+                    Job job = (Job) inputStream.readObject();
                     //send out incoming jobs from job sender to worker nodes.
                     roundRobin(job, pm);
                 }
@@ -42,10 +43,10 @@ public static void main(String[] args) throws ClassNotFoundException{
         }
     }
 
-    private static void roundRobin(int job, PromptHandler pm) {
+    private static void roundRobin(Job job, PromptHandler pm) {
         if (!_nodes.isEmpty()) {
             WorkerNodeTemplate workerNode = _nodes.remove(0);
-            pm.handlePrompt("roundRobin", job, workerNode.getNodeName());
+            pm.handlePrompt("roundRobin", job.getJobTime(), workerNode.getNodeName());
             sendJobToWorkerNode(workerNode, job, pm);
             _nodes.add(workerNode); 
         } else {
@@ -53,7 +54,7 @@ public static void main(String[] args) throws ClassNotFoundException{
         }
     }
 
-    private static void sendJobToWorkerNode(WorkerNodeTemplate workerNode, int job, PromptHandler pm) {
+    private static void sendJobToWorkerNode(WorkerNodeTemplate workerNode, Job job, PromptHandler pm) {
         try {
             //establish connection with selected node and send job (time)
             Socket socket = new Socket(workerNode.getNodeHost(), workerNode.getNodePort());
