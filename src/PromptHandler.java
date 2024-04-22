@@ -13,22 +13,22 @@ public class PromptHandler {
         
     }
     
-    public void handlePrompt(String code, int optionalInt, String optionalString){
+    public void handlePrompt(String code, int optionalInt, String optionalString, String optionalString2){
         switch(code){
             case "lbRunning":
-                System.out.println("Load balancer running ("+optionalInt+")");
+                System.out.println("Load balancer running (port: "+optionalInt+")");
                 break;
             case "noMoreJobs":
                 System.out.println("No more jobs from JobSender.");
                 break;
             case "roundRobin":
-                System.out.println("Distributing Job (" + optionalInt + "ms) to " + optionalString+ " node.");
+                System.out.println("Distributing " + optionalString + " with duration " + optionalInt + "ms to " + optionalString2 + " node.");
                 break;
             case "noNodes":
                 System.out.println("No nodes to handle job.");
                 break;
             case "failedJob":
-                System.out.println("Failed to send job to "+optionalString);
+                System.out.println("Failed to send " + optionalString + " to " + optionalString2 + " node.");
                 break;
             case "projectHeader":
                 System.out.println("---PROJECT CONFIGURATION SECTION---");
