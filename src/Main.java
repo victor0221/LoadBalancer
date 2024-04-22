@@ -21,7 +21,7 @@ public static void main(String[] args) throws ClassNotFoundException{
     try {
         //open to jobs from job sender.
         ServerSocket serverSocket = new ServerSocket(config.getPort());
-        pm.handlePrompt("lbRunning", config.getPort(), null);
+        pm.handlePrompt("lbRunning", config.getPort(), null, null);
         while (true) {
             //capture jobs from job sedner
             Socket clientSocket = serverSocket.accept();
@@ -33,7 +33,7 @@ public static void main(String[] args) throws ClassNotFoundException{
                     roundRobin(job, pm);
                 }
             } catch (IOException | ClassNotFoundException e) {
-                pm.handlePrompt("noMoreJobs", 0, null);
+                pm.handlePrompt("noMoreJobs", 0, null, null);
             } finally {
                 clientSocket.close();
             }
@@ -46,11 +46,11 @@ public static void main(String[] args) throws ClassNotFoundException{
     private static void roundRobin(Job job, PromptHandler pm) {
         if (!_nodes.isEmpty()) {
             WorkerNodeTemplate workerNode = _nodes.remove(0);
-            pm.handlePrompt("roundRobin", job.getJobTime(), workerNode.getNodeName());
+            pm.handlePrompt("roundRobin", job.getJobTime(), job.getJobName() , workerNode.getNodeName());
             sendJobToWorkerNode(workerNode, job, pm);
             _nodes.add(workerNode); 
         } else {
-            pm.handlePrompt("noNodes", 0, null);
+            pm.handlePrompt("noNodes", 0, null, null);
         }
     }
 
@@ -62,36 +62,36 @@ public static void main(String[] args) throws ClassNotFoundException{
             outputStream.writeObject(job);
             socket.close();
         } catch (IOException e) {
-            pm.handlePrompt("failedJob", 0, workerNode.getNodeName());
+            pm.handlePrompt("failedJob", 0, job.getJobName() , workerNode.getNodeName());
         }
     }
     
     
     //helper fucntions
     private static Config configDataCapture(PromptHandler pm){
-        pm.handlePrompt("projectHeader", 0, null);
+        pm.handlePrompt("projectHeader", 0, null, null);
         Scanner hostCap = new Scanner(System.in);
-        pm.handlePrompt("host", 0, null);
+        pm.handlePrompt("host", 0, null, null);
         String activeHost = hostCap.nextLine();
         Scanner portCap = new Scanner(System.in);
-        pm.handlePrompt("port", 0, null);
+        pm.handlePrompt("port", 0, null, null);
         int activePort = portCap.nextInt();
-        pm.handlePrompt("nodeHeader", 0, null);
+        pm.handlePrompt("nodeHeader", 0, null, null);
         Scanner nodeCountCap = new Scanner(System.in);
-        pm.handlePrompt("nodeAmount", 0, null);
+        pm.handlePrompt("nodeAmount", 0, null, null);
         int activeNodeCount = nodeCountCap.nextInt();
         for(int i = 0; i < activeNodeCount; i++ ){     
         Scanner nodeNameCap = new Scanner(System.in);
-        pm.handlePrompt("nodeName", 0, null);
+        pm.handlePrompt("nodeName", 0, null, null);
         String activeNodeName = nodeNameCap.nextLine();  
         Scanner nodeHostCap = new Scanner(System.in);
-        pm.handlePrompt("nodeHost", 0, null);
+        pm.handlePrompt("nodeHost", 0, null, null);
         String activeNodeHost = nodeHostCap.nextLine(); 
         Scanner nodePortCap = new Scanner(System.in);
-        pm.handlePrompt("nodePort", 0, null);
+        pm.handlePrompt("nodePort", 0, null, null);
         int activeNodePort = nodePortCap.nextInt();
         _nodes.add(new WorkerNodeTemplate(activeNodeName, activeNodeHost, activeNodePort));
-        pm.handlePrompt("nodeSuccess", 0, null);
+        pm.handlePrompt("nodeSuccess", 0, null, null);
         
         }
         return new Config(activePort,activeHost);
