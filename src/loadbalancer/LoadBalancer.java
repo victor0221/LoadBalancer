@@ -1,6 +1,10 @@
-import java.io.BufferedReader;
+package loadbalancer;
+
+
+import loadbalancer.NODE_TEMPLATE.WorkerNodeTemplate;
+import loadbalancer.HELPERS.PromptHandler;
+import loadbalancer.CONFIG.Config;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.ServerSocket;
@@ -8,15 +12,27 @@ import java.net.Socket;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
-import jobsender.Job;
+import jobsender.JOB_TEMPLATE.Job;
 
-public class Main {
+/*
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
+ */
+
+/**
+ *
+ * @author usula
+ */
+public class LoadBalancer {
+    private static List<WorkerNodeTemplate> _nodes = new ArrayList<>();
     
-private static List<WorkerNodeTemplate> _nodes = new ArrayList<>();
-
-public static void main(String[] args) throws ClassNotFoundException{
-        PromptHandler pm = new PromptHandler();
-        Config config = configDataCapture(pm);
+    public LoadBalancer(){
+        
+    }
+    
+    public void runLoadBalancer(){
+    PromptHandler pm = new PromptHandler();
+    Config config = configDataCapture(pm);
         
     try {
         //open to jobs from job sender.
