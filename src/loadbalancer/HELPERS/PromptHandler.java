@@ -20,6 +20,12 @@ public class PromptHandler {
             case "lbRunning":
                 System.out.println("Load balancer running (port: "+optionalInt+")");
                 break;
+            case "nodeRegistered":
+                System.out.println(optionalString + " node registered successfully on " + optionalString2 + ":" + optionalInt);
+                break;
+            case "unknownNode":
+                System.out.println("Unrecognised node " + "'" + optionalString + "'" + " attempted to register.");
+                break;                            
             case "noMoreJobs":
                 System.out.println("No more jobs from JobSender.");
                 break;
@@ -28,6 +34,9 @@ public class PromptHandler {
                 break;
             case "noNodes":
                 System.out.println("No nodes to handle job.");
+                break;
+            case "jobCompleted":
+                System.out.println(optionalString);
                 break;
             case "failedJob":
                 System.out.println("Failed to send " + optionalString + " to " + optionalString2 + " node.");
@@ -58,6 +67,12 @@ public class PromptHandler {
                 break;
             case "nodeSuccess":
                 System.out.println("node added!");
+                break;
+            case "unknownMessage":
+                System.out.println("Received an unknown message.");
+                break;
+            case "socketCloseError":
+                System.err.println("Error closing client socket: " + optionalString);
                 break;
             case "pressY":
                 System.out.println("enter 'y' to view stack:");
