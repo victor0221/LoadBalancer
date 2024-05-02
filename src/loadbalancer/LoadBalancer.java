@@ -25,6 +25,7 @@ import jobsender.JOB_TEMPLATE.Job;
 public class LoadBalancer {
 
     private static List<WorkerNodeTemplate> _nodes = new ArrayList<>();
+    private static List<Job> _queuedJobs = new ArrayList<>();
 
     public LoadBalancer() {
 
@@ -133,6 +134,20 @@ public class LoadBalancer {
                         Job job = (Job) inputStream.readObject();
                         roundRobin(job, pm);
                         break;
+                    case "ADD_TO_JOB_QUEUE":
+                        Job queuedJob = (Job) inputStream.readObject();
+                        pm.handlePrompt("jobQueued", queuedJob.getJobTime(), queuedJob.getJobName(), null);
+                        _queuedJobs.add(new Job(queuedJob.getJobName(), queuedJob.getJobTime()));
+                        break;
+                    case "NODE_CAPACITY":
+                        String _nodeName = inputStream.readUTF();
+                        String _nodeHost = inputStream.readUTF();
+                        int _nodePort = inputStream.readInt();
+                        int _nodeCapacity = inputStream.readInt();
+                        if (!_queuedJobs.isEmpty()) {
+                            processQueuedJobs(_nodeName,_nodeHost, _nodePort, _nodeCapacity, pm);
+                        }
+                        break;
                     case "JOB_COMPLETION": // Worker sends this when job is completed
                         String completionMessage = inputStream.readUTF();
                         pm.handlePrompt("jobCompleted", 0, completionMessage, null);
@@ -161,5 +176,20 @@ public class LoadBalancer {
     private boolean isNodeRegistered(String host, int port) {
         return _nodes.stream().anyMatch(node -> node.getNodeHost().equals(host) && node.getNodePort() == port);
     }
+    
+    private static void processQueuedJobs(String nodeName, String nodeHost, int nodePort, int nodeCapacity, PromptHandler pm) {
+
+        try {
+            Socket socket = new Socket(nodeHost, nodePort);
+            ObjectOutputStream outputStream = new ObjectOutputStream(socket.getOutputStream());
+            Job job = (Job) _queuedJobs.get(0);
+            pm.handlePrompt("roundRobin", job.getJobTime(), job.getJobName(), nodeName);
+            outputStream.writeObject(job);
+            _queuedJobs.remove(0);
+            socket.close();
+        } catch (IOException e) {
+            pm.handlePrompt("failedJob", 0, _queuedJobs.get(0).getJobName(), nodeName);
+        }
+    }   
 
 }
