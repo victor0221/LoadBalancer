@@ -38,6 +38,9 @@ public class PromptHandler {
             case "jobCompleted":
                 System.out.println(optionalString);
                 break;
+            case "jobQueued":
+                System.out.println("JOB QUEUED: " + optionalString + " with duration " + optionalInt + "ms sent to Job queue.");
+                break;
             case "failedJob":
                 System.out.println("Failed to send " + optionalString + " to " + optionalString2 + " node.");
                 break;
