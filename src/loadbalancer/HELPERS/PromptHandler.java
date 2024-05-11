@@ -80,6 +80,9 @@ public class PromptHandler {
             case "pressY":
                 System.out.println("enter 'y' to view stack:");
                 break;
+            case "invalidInt":
+                System.out.println("Invalid input. Please enter a valid integer.");
+                break;
         }
     }
 }

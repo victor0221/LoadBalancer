@@ -70,19 +70,16 @@ public class LoadBalancer {
         }
     }
 
-    //helper fucntions
+    //helper functions
     private static Config configDataCapture(PromptHandler pm) {
         pm.handlePrompt("projectHeader", 0, null, null);
         Scanner hostCap = new Scanner(System.in);
         pm.handlePrompt("host", 0, null, null);
         String activeHost = hostCap.nextLine();
-        Scanner portCap = new Scanner(System.in);
-        pm.handlePrompt("port", 0, null, null);
-        int activePort = portCap.nextInt();
+        int activePort = captureInt("port", pm);
         pm.handlePrompt("nodeHeader", 0, null, null);
-        Scanner nodeCountCap = new Scanner(System.in);
-        pm.handlePrompt("nodeAmount", 0, null, null);
-        int activeNodeCount = nodeCountCap.nextInt();
+        int activeNodeCount = captureInt("nodeAmount", pm);
+        
         for (int i = 0; i < activeNodeCount; i++) {
             Scanner nodeNameCap = new Scanner(System.in);
             pm.handlePrompt("nodeName", 0, null, null);
@@ -90,14 +87,28 @@ public class LoadBalancer {
             Scanner nodeHostCap = new Scanner(System.in);
             pm.handlePrompt("nodeHost", 0, null, null);
             String activeNodeHost = nodeHostCap.nextLine();
-            Scanner nodePortCap = new Scanner(System.in);
-            pm.handlePrompt("nodePort", 0, null, null);
-            int activeNodePort = nodePortCap.nextInt();
+            int activeNodePort = captureInt("nodePort", pm);
             _nodes.add(new WorkerNodeTemplate(activeNodeName, activeNodeHost, activeNodePort));
             pm.handlePrompt("nodeSuccess", 0, null, null);
-
         }
         return new Config(activePort, activeHost);
+    }
+    
+    private static int captureInt(String promptCode, PromptHandler pm) {
+        int validInt = 0;
+        boolean validInput = false;
+        while (!validInput) {
+            Scanner scanner = new Scanner(System.in);
+            pm.handlePrompt(promptCode, 0, null, null);
+            if (scanner.hasNextInt()) {
+                validInt = scanner.nextInt();
+                validInput = true; 
+            } else {
+                pm.handlePrompt("invalidInt", 0, null, null);
+                scanner.next(); 
+            }
+        }
+        return validInt;
     }
 
     private static void errorHandler(Exception e, PromptHandler pm) {
