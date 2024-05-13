@@ -73,20 +73,14 @@ public class LoadBalancer {
     //helper functions
     private static Config configDataCapture(PromptHandler pm) {
         pm.handlePrompt("projectHeader", 0, null, null);
-        Scanner hostCap = new Scanner(System.in);
-        pm.handlePrompt("host", 0, null, null);
-        String activeHost = hostCap.nextLine();
+        String activeHost = captureString("host", pm);
         int activePort = captureInt("port", pm);
         pm.handlePrompt("nodeHeader", 0, null, null);
         int activeNodeCount = captureInt("nodeAmount", pm);
         
         for (int i = 0; i < activeNodeCount; i++) {
-            Scanner nodeNameCap = new Scanner(System.in);
-            pm.handlePrompt("nodeName", 0, null, null);
-            String activeNodeName = nodeNameCap.nextLine();
-            Scanner nodeHostCap = new Scanner(System.in);
-            pm.handlePrompt("nodeHost", 0, null, null);
-            String activeNodeHost = nodeHostCap.nextLine();
+            String activeNodeName = captureString("nodeName", pm);
+            String activeNodeHost = captureString("nodeHost", pm);
             int activeNodePort = captureInt("nodePort", pm);
             _nodes.add(new WorkerNodeTemplate(activeNodeName, activeNodeHost, activeNodePort));
             pm.handlePrompt("nodeSuccess", 0, null, null);
@@ -109,6 +103,22 @@ public class LoadBalancer {
             }
         }
         return validInt;
+    }
+    
+    private static String captureString(String promptCode, PromptHandler pm) {
+        String validString = "";
+        boolean validInput = false;
+        while (!validInput) {
+            Scanner scanner = new Scanner(System.in);
+            pm.handlePrompt(promptCode, 0, null, null);
+            validString = scanner.nextLine().trim();
+            if (!validString.isEmpty()) {
+                validInput = true;
+            } else {
+                pm.handlePrompt("invalidString", 0, null, null);
+            }
+        }
+        return validString;
     }
 
     private static void errorHandler(Exception e, PromptHandler pm) {
