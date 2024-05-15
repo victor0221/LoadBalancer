@@ -42,7 +42,7 @@ public class LoadBalancerTest {
     
     @Test
     public void NodeRegistration() {
-    _nodes.add(new WorkerNodeTemplate("node1", "localhost", 12345));
+    _nodes.add(new WorkerNodeTemplate("node1", "localhost", 12345, 10));
     if(mockIsNodeRegistered("localhost", 12345)){
         
     }else{
@@ -53,7 +53,7 @@ public class LoadBalancerTest {
     
     @Test
     public void TestRoundRobin() {
-    _nodes.add(new WorkerNodeTemplate("node1", "localhost", 12345));
+    _nodes.add(new WorkerNodeTemplate("node1", "localhost", 12345, 10));
         
     if(roundRobin()){
         

@@ -10,6 +10,7 @@ import java.io.ObjectOutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Scanner;
 import jobsender.JOB_TEMPLATE.Job;
@@ -47,14 +48,16 @@ public class LoadBalancer {
         }
     }
 
-    private static void roundRobin(Job job, PromptHandler pm) {
-        if (!_nodes.isEmpty()) {
-            WorkerNodeTemplate workerNode = _nodes.remove(0);
-            pm.handlePrompt("roundRobin", job.getJobTime(), job.getJobName(), workerNode.getNodeName());
-            sendJobToWorkerNode(workerNode, job, pm);
-            _nodes.add(workerNode);
-        } else {
-            pm.handlePrompt("noNodes", 0, null, null);
+    private static void weightedRoundRobin(Job job, PromptHandler pm) {
+        synchronized (_nodes) {
+            if (!_nodes.isEmpty()) {
+                _nodes.sort(Comparator.comparingInt(WorkerNodeTemplate::getNodeCapacity).reversed());
+                WorkerNodeTemplate workerNode = _nodes.get(0);
+                pm.handlePrompt("weightedRoundRobin", job.getJobTime(), job.getJobName(), workerNode.getNodeName());
+                sendJobToWorkerNode(workerNode, job, pm);
+            } else {
+                pm.handlePrompt("noNodes", 0, null, null);
+            }
         }
     }
 
@@ -64,9 +67,11 @@ public class LoadBalancer {
             Socket socket = new Socket(workerNode.getNodeHost(), workerNode.getNodePort());
             ObjectOutputStream outputStream = new ObjectOutputStream(socket.getOutputStream());
             outputStream.writeObject(job);
+            decrementNodeCapacity(workerNode.getNodeName(), workerNode.getNodeHost(), workerNode.getNodePort());
             socket.close();
         } catch (IOException e) {
             pm.handlePrompt("failedJob", 0, job.getJobName(), workerNode.getNodeName());
+            addToJobQueue(job, pm);
         }
     }
 
@@ -82,7 +87,8 @@ public class LoadBalancer {
             String activeNodeName = captureString("nodeName", pm);
             String activeNodeHost = captureString("nodeHost", pm);
             int activeNodePort = captureInt("nodePort", pm);
-            _nodes.add(new WorkerNodeTemplate(activeNodeName, activeNodeHost, activeNodePort));
+            int activeNodeCapacity = captureInt("nodeCapacity", pm);
+            _nodes.add(new WorkerNodeTemplate(activeNodeName, activeNodeHost, activeNodePort, activeNodeCapacity));
             pm.handlePrompt("nodeSuccess", 0, null, null);
         }
         return new Config(activePort, activeHost);
@@ -153,25 +159,27 @@ public class LoadBalancer {
                         break;
                     case "JOB_SUBMISSION":
                         Job job = (Job) inputStream.readObject();
-                        roundRobin(job, pm);
+                        weightedRoundRobin(job, pm);
                         break;
                     case "ADD_TO_JOB_QUEUE":
                         Job queuedJob = (Job) inputStream.readObject();
-                        pm.handlePrompt("jobQueued", queuedJob.getJobTime(), queuedJob.getJobName(), null);
-                        _queuedJobs.add(new Job(queuedJob.getJobName(), queuedJob.getJobTime()));
+                        addToJobQueue(queuedJob, pm);
                         break;
                     case "NODE_CAPACITY":
                         String _nodeName = inputStream.readUTF();
                         String _nodeHost = inputStream.readUTF();
                         int _nodePort = inputStream.readInt();
                         int _nodeCapacity = inputStream.readInt();
-                        if (!_queuedJobs.isEmpty()) {
-                            processQueuedJobs(_nodeName,_nodeHost, _nodePort, _nodeCapacity, pm);
-                        }
+                        matchNodeCapacity(_nodeName, _nodeHost, _nodePort, _nodeCapacity);
+                        new Thread(() -> processQueuedJobs(pm)).start();
                         break;
                     case "JOB_COMPLETION": // Worker sends this when job is completed
+                        String compNodeName = inputStream.readUTF();
+                        String compNodeHost = inputStream.readUTF();
+                        int compNodePort = inputStream.readInt();
                         String completionMessage = inputStream.readUTF();
                         pm.handlePrompt("jobCompleted", 0, completionMessage, null);
+                        incrementNodeCapacity(compNodeName, compNodeHost, compNodePort);
                         break;
                     case "CLOSE_CONNECTION":  // Actioned when user inputs no more jobs from JobSender
                         pm.handlePrompt("noMoreJobs", 0, null, null);
@@ -198,19 +206,70 @@ public class LoadBalancer {
         return _nodes.stream().anyMatch(node -> node.getNodeHost().equals(host) && node.getNodePort() == port);
     }
     
-    private static void processQueuedJobs(String nodeName, String nodeHost, int nodePort, int nodeCapacity, PromptHandler pm) {
-
-        try {
-            Socket socket = new Socket(nodeHost, nodePort);
-            ObjectOutputStream outputStream = new ObjectOutputStream(socket.getOutputStream());
-            Job job = (Job) _queuedJobs.get(0);
-            pm.handlePrompt("roundRobin", job.getJobTime(), job.getJobName(), nodeName);
-            outputStream.writeObject(job);
-            _queuedJobs.remove(0);
-            socket.close();
-        } catch (IOException e) {
-            pm.handlePrompt("failedJob", 0, _queuedJobs.get(0).getJobName(), nodeName);
+    private static void addToJobQueue(Job queuedJob, PromptHandler pm) {
+        synchronized (_queuedJobs) {
+            _queuedJobs.add(new Job(queuedJob.getJobName(), queuedJob.getJobTime()));
+            pm.handlePrompt("jobQueued", queuedJob.getJobTime(), queuedJob.getJobName(), null);
         }
-    }   
+    }
+    
+    private void processQueuedJobs(PromptHandler pm) {
+        while (!Thread.currentThread().isInterrupted()) {
+            synchronized (_queuedJobs) {
+                if (!_queuedJobs.isEmpty()) {
+                    Job job = _queuedJobs.get(0);
+                    if (!_nodes.isEmpty()) {
+                        _nodes.sort(Comparator.comparingInt(WorkerNodeTemplate::getNodeCapacity).reversed());
+                        WorkerNodeTemplate workerNode = _nodes.get(0);
+                        if (!(workerNode.getNodeCapacity() <= 0)) {
+                            pm.handlePrompt("weightedRoundRobin", job.getJobTime(), job.getJobName(), workerNode.getNodeName());
+                            _queuedJobs.remove(0);
+                            sendJobToWorkerNode(workerNode, job, pm);
+                        }
+                    }
+                }
+            }
+            try {
+                Thread.sleep(1000); 
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt(); 
+                return;
+            }
+        }
+    }  
 
+    private static void matchNodeCapacity(String nodeName, String nodeHost, int nodePort, int nodeCapacity) {
+        // Finding the matching node 
+        for (WorkerNodeTemplate node : _nodes) {
+            if (node.getNodeName().equals(nodeName) && node.getNodeHost().equals(nodeHost) && node.getNodePort() == nodePort) {
+//              Correcting node capacity to be one sent by WN itself.
+//              This is done just in case the user mistakenly enters wrong node capacity in LB config.
+                node.setNodeCapacity(nodeCapacity);
+                return;  
+            }
+        }
+    }
+    
+    private static void incrementNodeCapacity(String nodeName, String nodeHost, int nodePort) {
+        synchronized (_nodes) {
+            for (WorkerNodeTemplate node : _nodes) {
+                if (node.getNodeName().equals(nodeName) && node.getNodeHost().equals(nodeHost) && node.getNodePort() == nodePort) {
+                    node.incrementNodeCapacity();
+                    return; 
+                }
+            }
+        }
+    }
+
+    private static void decrementNodeCapacity(String nodeName, String nodeHost, int nodePort) {
+        synchronized (_nodes) {
+            for (WorkerNodeTemplate node : _nodes) {
+                if (node.getNodeName().equals(nodeName) && node.getNodeHost().equals(nodeHost) && node.getNodePort() == nodePort) {
+                    node.decrementNodeCapacity();
+                    return;  
+                }
+            }
+        }
+    }
+    
 }

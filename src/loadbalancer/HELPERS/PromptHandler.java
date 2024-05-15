@@ -29,7 +29,7 @@ public class PromptHandler {
             case "noMoreJobs":
                 System.out.println("No more jobs from JobSender.");
                 break;
-            case "roundRobin":
+            case "weightedRoundRobin":
                 System.out.println("Distributing " + optionalString + " with duration " + optionalInt + "ms to " + optionalString2 + " node.");
                 break;
             case "noNodes":
@@ -52,6 +52,9 @@ public class PromptHandler {
                 break;
             case "port":
                 System.out.println("Enter port number: ");
+                break;
+            case "nodeCapacity":
+                System.out.println("Enter node capacity: ");
                 break;
             case "nodeHeader":
                 System.out.println("---NODE CONFIGURATION---");
