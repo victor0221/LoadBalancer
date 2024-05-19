@@ -13,7 +13,11 @@ public interface IWorkerNodeTemplate {
     public String getNodeName();
     public String getNodeHost();
     public int getNodePort();
+    public int getNodeCapacity();
     public void setNodeName(String nodeName);
     public void setNodeHost(String nodeHost);
     public void setNodePort(int nodePort);
+    public void setNodeCapacity(int nodeCapacity);
+    public void incrementNodeCapacity();
+    public void decrementNodeCapacity();
 }
