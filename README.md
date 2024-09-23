@@ -1,5 +1,9 @@
 **Load Balancer Made In Java**
 
+**Methodology/Creation:**
+  - Agile with Kanban board
+  - Paired Programming
+
 **Key Fearures**
   - Multi Threaded
   - Unit Tested
