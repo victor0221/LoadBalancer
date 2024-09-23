@@ -4,7 +4,7 @@
   - Agile with Kanban board
   - Paired Programming
 
-**Key Fearures**
+**Key Features**
   - Multi Threaded
   - Unit Tested
   - Sophisticated Message Handling / IO system
